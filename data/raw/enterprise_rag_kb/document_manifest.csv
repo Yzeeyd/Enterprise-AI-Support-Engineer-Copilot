@@ -1,0 +1,30 @@
+# NexaCore Solutions - Enterprise AI Support Copilot Knowledge Base
+
+This is a fictional dataset created for a RAG/OCR learning project.
+
+## Business problem
+Employees lose time searching across IT policies, troubleshooting guides, FAQs, and incident runbooks. Some source documents are normal digital PDFs, while some legacy operational documents are scanned PDFs with no text layer. The goal is to build an AI support copilot that retrieves approved company information, uses OCR when required, answers with citations, and refuses to invent policy when the answer is not in the knowledge base.
+
+## Files
+- 01_IT_Security_Policy.pdf - native text PDF
+- 02_Password_and_MFA_Policy.pdf - native text PDF
+- 03_VPN_Troubleshooting_Guide_SCANNED.pdf - raster-only scanned PDF; OCR required
+- 04_Remote_Access_Policy.pdf - native text PDF
+- 05_Incident_Response_Quick_Runbook_SCANNED.pdf - raster-only scanned PDF; OCR required
+- 06_IT_Support_FAQ.pdf - native text PDF with a table
+- golden_questions.json - evaluation questions with expected answers/sources
+- document_manifest.csv - document type and OCR requirement
+
+## Phase 1 target architecture
+Native PDFs -> parser -> chunks -> embeddings -> vector store
+Scanned PDFs -> OCR -> extracted text -> chunks -> embeddings -> vector store
+User question -> retrieval -> LLM -> answer + citations
+
+## Definition of done
+1. All six documents are indexed.
+2. OCR is used for the two scanned PDFs.
+3. Questions Q01-Q12 can be tested against the system.
+4. Answers cite the correct source document(s).
+5. Q10 must be refused as unsupported rather than hallucinated.
+
+All company names, policies, and data in this pack are fictional.

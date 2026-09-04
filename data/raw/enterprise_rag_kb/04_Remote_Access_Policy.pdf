@@ -1,0 +1,118 @@
+[
+  {
+    "id": "Q01",
+    "question": "What is the minimum corporate password length?",
+    "expected_answer": "At least 14 characters.",
+    "expected_sources": [
+      "02_Password_and_MFA_Policy.pdf"
+    ],
+    "category": "direct"
+  },
+  {
+    "id": "Q02",
+    "question": "Do standard users have to rotate passwords every 90 days?",
+    "expected_answer": "No. Routine password rotation is not required; change is required when compromise is suspected, after an admin reset, or following a breach notification.",
+    "expected_sources": [
+      "02_Password_and_MFA_Policy.pdf"
+    ],
+    "category": "direct"
+  },
+  {
+    "id": "Q03",
+    "question": "I received MFA prompts I did not request. What should I do?",
+    "expected_answer": "Deny the prompt, change/reset the password, and report the event to Security Operations and the IT Service Desk.",
+    "expected_sources": [
+      "01_IT_Security_Policy.pdf",
+      "02_Password_and_MFA_Policy.pdf",
+      "06_IT_Support_FAQ.pdf",
+      "05_Incident_Response_Quick_Runbook_SCANNED.pdf"
+    ],
+    "category": "multi_document"
+  },
+  {
+    "id": "Q04",
+    "question": "Can I connect to the company VPN from my personal laptop?",
+    "expected_answer": "No. Corporate VPN access is limited to approved company-managed devices.",
+    "expected_sources": [
+      "04_Remote_Access_Policy.pdf",
+      "03_VPN_Troubleshooting_Guide_SCANNED.pdf",
+      "06_IT_Support_FAQ.pdf"
+    ],
+    "category": "multi_document"
+  },
+  {
+    "id": "Q05",
+    "question": "After how many failed sign-in attempts can my account lock temporarily?",
+    "expected_answer": "Five consecutive failed attempts within 15 minutes can trigger a 15-minute lockout.",
+    "expected_sources": [
+      "02_Password_and_MFA_Policy.pdf",
+      "03_VPN_Troubleshooting_Guide_SCANNED.pdf"
+    ],
+    "category": "ocr_cross_reference"
+  },
+  {
+    "id": "Q06",
+    "question": "My VPN connects, but internal websites do not load. What should I check?",
+    "expected_answer": "Reconnect once, verify the client shows Connected and has a corporate VPN address, then test the internal status page. If multiple internal services fail, collect diagnostics and escalate appropriately.",
+    "expected_sources": [
+      "03_VPN_Troubleshooting_Guide_SCANNED.pdf"
+    ],
+    "category": "ocr_only"
+  },
+  {
+    "id": "Q07",
+    "question": "How long can an idle VPN session remain connected?",
+    "expected_answer": "VPN sessions disconnect after 30 minutes of inactivity.",
+    "expected_sources": [
+      "04_Remote_Access_Policy.pdf",
+      "03_VPN_Troubleshooting_Guide_SCANNED.pdf"
+    ],
+    "category": "ocr_cross_reference"
+  },
+  {
+    "id": "Q08",
+    "question": "What should I do if my company laptop is stolen?",
+    "expected_answer": "Report it immediately to the Service Desk and Security Operations and provide the asset tag, last known location, time last seen, and whether sensitive data was stored locally.",
+    "expected_sources": [
+      "05_Incident_Response_Quick_Runbook_SCANNED.pdf",
+      "01_IT_Security_Policy.pdf"
+    ],
+    "category": "ocr_only"
+  },
+  {
+    "id": "Q09",
+    "question": "Can I use a consumer VPN to bypass a country block while traveling?",
+    "expected_answer": "No. Contact the Service Desk and reference the Travel Access Request instead.",
+    "expected_sources": [
+      "04_Remote_Access_Policy.pdf",
+      "03_VPN_Troubleshooting_Guide_SCANNED.pdf",
+      "06_IT_Support_FAQ.pdf"
+    ],
+    "category": "multi_document"
+  },
+  {
+    "id": "Q10",
+    "question": "What is the company's maternity leave policy?",
+    "expected_answer": "Insufficient information in the provided IT knowledge base.",
+    "expected_sources": [],
+    "category": "unanswerable"
+  },
+  {
+    "id": "Q11",
+    "question": "What is the P1 target initial response time?",
+    "expected_answer": "15 minutes.",
+    "expected_sources": [
+      "06_IT_Support_FAQ.pdf"
+    ],
+    "category": "table"
+  },
+  {
+    "id": "Q12",
+    "question": "Should I power off a device immediately after seeing active malware behavior?",
+    "expected_answer": "Not necessarily. Disconnect it from networks, but keep it powered on unless Security Operations instructs otherwise.",
+    "expected_sources": [
+      "05_Incident_Response_Quick_Runbook_SCANNED.pdf"
+    ],
+    "category": "ocr_only"
+  }
+]
