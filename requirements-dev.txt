@@ -1,0 +1,9 @@
+deepagents
+langchain[openai] 
+langchain-text-splitters 
+requests 
+numpy
+dotenv
+langchain_community
+pypdf
+fonttools
