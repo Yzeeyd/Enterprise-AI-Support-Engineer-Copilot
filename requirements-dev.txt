@@ -8,4 +8,5 @@ dotenv
 langchain_community
 pypdf
 fonttools
+langchain_ollama
 langchain_chroma
