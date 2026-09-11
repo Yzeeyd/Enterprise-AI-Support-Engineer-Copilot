@@ -33,3 +33,25 @@ def embeddings_model(model="qwen3-embedding:latest") -> object:
         An embeddings model object."""
     
     return OllamaEmbeddings(model=model)
+
+def add_chunks_to_vector_store(
+    chunks,
+    vector_store,
+    document_id: str
+) -> list[str]:
+    
+    chunk_ids = []
+
+    for index, chunk in enumerate(chunks):
+
+        chunk_id = f"{document_id}::chunk_{index}"
+
+        vector_store.add_texts(
+            texts=[chunk.page_content],
+            metadatas=[chunk.metadata],
+            ids=[chunk_id]
+        )
+
+        chunk_ids.append(chunk_id)
+
+    return chunk_ids

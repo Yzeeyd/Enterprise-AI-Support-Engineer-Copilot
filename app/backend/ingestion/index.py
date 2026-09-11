@@ -8,33 +8,12 @@ from langchain_ollama import OllamaEmbeddings
 
 from Loader import load_pdf_docs
 from Chunker import split_documents
-from service import VectorStore, embeddings_model
+from service import VectorStore, embeddings_model,add_chunks_to_vector_store
 from document_tracker import calculate_file_hash, get_document_id, file_exists, load_index_state, get_document_status,save_index_state
 
 load_dotenv()
 
 
-def add_chunks_to_vector_store(
-    chunks,
-    vector_store,
-    document_id: str
-) -> list[str]:
-    
-    chunk_ids = []
-
-    for index, chunk in enumerate(chunks):
-
-        chunk_id = f"{document_id}::chunk_{index}"
-
-        vector_store.add_texts(
-            texts=[chunk.page_content],
-            metadatas=[chunk.metadata],
-            ids=[chunk_id]
-        )
-
-        chunk_ids.append(chunk_id)
-
-    return chunk_ids
 
 
 def index_documents_pipeline() -> None:
