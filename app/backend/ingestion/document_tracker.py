@@ -32,7 +32,6 @@ def save_index_state(state_path: str, state: dict) -> None:
             indent=4
         )
 
-
 def load_index_state(state_path: str) -> dict:
     path = Path(state_path)
 

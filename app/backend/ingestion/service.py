@@ -32,4 +32,4 @@ def embeddings_model(model="qwen3-embedding:latest") -> object:
     returns:
         An embeddings model object."""
     
-    return OllamaEmbeddings(model="qwen3-embedding:latest")
+    return OllamaEmbeddings(model=model)
