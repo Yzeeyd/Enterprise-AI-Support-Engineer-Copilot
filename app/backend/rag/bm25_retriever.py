@@ -48,5 +48,8 @@ if __name__ == "__main__":
 
     results = retriever.retrieve(
         "كيف أغير كلمة المرور؟",
-        k=5
+        k=1
     )
+    for result in results:
+        print(result["_source"]["content"])
+        print("-----"*20)

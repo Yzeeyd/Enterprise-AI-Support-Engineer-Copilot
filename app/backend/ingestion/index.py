@@ -104,20 +104,4 @@ def index_documents_pipeline() -> None:
 
     
 if __name__ == "__main__":
-    print("Starting the ingestion process...")
-
     index_documents_pipeline()
-
-    embeddings_modelOllama = get_embeddings_model()    
-    retriever = VectorRetriever(
-        client=get_opensearch_client(),
-        embedding_model=embeddings_modelOllama
-    )
-    
-    print("Searching for similar documents...")
-    results = retriever.retrieve(query="كلمة المرور", k=3)
-
-    for result in results:
-        print(result.metadata)
-        print(result.page_content)
-        print("--------------------------------------------------")

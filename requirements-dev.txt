@@ -9,4 +9,4 @@ langchain_community
 pypdf
 fonttools
 langchain_ollama
-
+opensearch-py

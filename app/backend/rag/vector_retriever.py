@@ -52,7 +52,7 @@ class VectorRetriever:
 if __name__ == "__main__":
     # Example usage
     query = "كلمة السر"
-    top_k = 5
+    top_k = 1
     
     retriever = VectorRetriever(client=get_opensearch_client(), embedding_model=get_embeddings_model())
     results = retriever.retrieve(query=query, k=top_k)
