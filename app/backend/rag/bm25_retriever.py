@@ -1,5 +1,3 @@
-from langchain_community.retrievers import BM25Retriever
-
 from app.backend.search.client import get_opensearch_client
 from app.backend.search.index import INDEX_NAME
 
@@ -41,6 +39,7 @@ class BM25Retriever:
         )
 
         return response["hits"]["hits"]
+    
 if __name__ == "__main__":
 
     client = get_opensearch_client()

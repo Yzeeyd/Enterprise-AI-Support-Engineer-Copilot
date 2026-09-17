@@ -1,14 +1,17 @@
 from pathlib import Path
 import os
-
+#search
 from app.backend.search.client import get_opensearch_client
+from app.backend.search.index import create_index
 from app.backend.search.repository import OpenSearchRepository
+#embeddings
 from app.backend.embeddings.ollama import get_embeddings_model
-
+#ingestion
 from app.backend.ingestion.Loader import load_pdf_docs
 from app.backend.ingestion.Chunker import split_documents
 from app.backend.ingestion.document_tracker import calculate_file_hash, get_document_id, load_index_state, get_document_status,save_index_state
-
+#rag
+from app.backend.rag.vector_retriever import VectorRetriever
 
 def index_documents_pipeline() -> None:
 
@@ -26,6 +29,12 @@ def index_documents_pipeline() -> None:
 
     embeddings = get_embeddings_model()
     client = get_opensearch_client()
+
+    probe_vector = embeddings.embed_query("dimension probe")
+    create_index(
+        client=client,
+        embedding_dimension=len(probe_vector)
+    )
 
     repository = OpenSearchRepository(
         client=client,
@@ -100,9 +109,14 @@ if __name__ == "__main__":
     index_documents_pipeline()
 
     embeddings_modelOllama = get_embeddings_model()    
-    vector_store = get_vector_store(embeddings_modelOllama)
+    retriever = VectorRetriever(
+        client=get_opensearch_client(),
+        embedding_model=embeddings_modelOllama
+    )
+    
     print("Searching for similar documents...")
-    results = vector_store.similarity_search("كلمة المرور", k=1)
+    results = retriever.retrieve(query="كلمة المرور", k=3)
+
     for result in results:
         print(result.metadata)
         print(result.page_content)
