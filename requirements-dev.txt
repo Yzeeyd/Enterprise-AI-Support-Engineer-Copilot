@@ -10,3 +10,6 @@ pypdf
 fonttools
 langchain_ollama
 langchain_chroma
+rank_bm25
+opensearch-py
+Stemmer

@@ -1,19 +1,13 @@
-from dotenv import load_dotenv
 from pathlib import Path
 import os
-from dotenv import load_dotenv
 
-from langchain_openai import OpenAIEmbeddings
-from langchain_ollama import OllamaEmbeddings
+from app.backend.search.client import get_opensearch_client
+from app.backend.search.repository import OpenSearchRepository
+from app.backend.embeddings.ollama import get_embeddings_model
 
-from Loader import load_pdf_docs
-from Chunker import split_documents
-from service import VectorStore, embeddings_model,add_chunks_to_vector_store
-from document_tracker import calculate_file_hash, get_document_id, file_exists, load_index_state, get_document_status,save_index_state
-
-load_dotenv()
-
-
+from app.backend.ingestion.Loader import load_pdf_docs
+from app.backend.ingestion.Chunker import split_documents
+from app.backend.ingestion.document_tracker import calculate_file_hash, get_document_id, load_index_state, get_document_status,save_index_state
 
 
 def index_documents_pipeline() -> None:
@@ -30,8 +24,14 @@ def index_documents_pipeline() -> None:
 
     state = load_index_state(state_path)
 
-    embeddings = embeddings_model()
-    vector_store = VectorStore(embeddings)
+    embeddings = get_embeddings_model()
+    client = get_opensearch_client()
+
+    repository = OpenSearchRepository(
+        client=client,
+        embedding_model=embeddings
+    )
+
     for file_path in file_paths:
 
         document_id = get_document_id(
@@ -56,11 +56,9 @@ def index_documents_pipeline() -> None:
 
             documents = load_pdf_docs([file_path])
             chunks = split_documents(documents)
-
-            chunk_ids = add_chunks_to_vector_store(
-                chunks,
-                vector_store,
-                document_id
+            chunk_ids = repository.index_chunks(
+                chunks=chunks,
+                document_id=document_id
             )
 
             state[document_id] = {
@@ -76,18 +74,15 @@ def index_documents_pipeline() -> None:
             )
 
             if old_chunk_ids:
-                vector_store.delete(
-                    ids=old_chunk_ids
-                )
+                repository.delete_chunks(old_chunk_ids)
 
             documents = load_pdf_docs([file_path])
             chunks = split_documents(documents)
 
-            new_chunk_ids = add_chunks_to_vector_store(
-                chunks,
-                vector_store,
-                document_id
-            )
+            new_chunk_ids = repository.index_chunks(
+                chunks=chunks,
+                document_id=document_id
+                )
 
             state[document_id] = {
                 "hash": current_hash,
@@ -104,8 +99,8 @@ if __name__ == "__main__":
 
     index_documents_pipeline()
 
-    embeddings_modelOllama = embeddings_model(model="qwen3-embedding:0.6b")    
-    vector_store = VectorStore(embeddings_modelOllama)
+    embeddings_modelOllama = get_embeddings_model()    
+    vector_store = get_vector_store(embeddings_modelOllama)
     print("Searching for similar documents...")
     results = vector_store.similarity_search("كلمة المرور", k=1)
     for result in results:

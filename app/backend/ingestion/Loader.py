@@ -1,8 +1,8 @@
 from langchain_core.documents import Document
 from langchain_community.document_loaders import PyPDFLoader
 from pathlib import Path
-import json 
-from document_tracker import calculate_file_hash, get_document_id, file_exists, load_index_state, get_document_status
+
+from app.backend.ingestion.document_tracker import calculate_file_hash, get_document_id
 
 
 
