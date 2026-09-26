@@ -16,5 +16,22 @@ services:
     volumes:
       - opensearch-data:/usr/share/opensearch/data
 
+
+  backend:
+    build: ./
+    container_name: copilot-backend
+
+    ports:
+      - "8000:8000"
+
+    environment:
+      - OPENSEARCH_HOST=opensearch
+      - OPENSEARCH_PORT=9200
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434
+
+    depends_on:
+      - opensearch
+
+
 volumes:
   opensearch-data:

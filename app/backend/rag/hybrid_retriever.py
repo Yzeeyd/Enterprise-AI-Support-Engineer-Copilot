@@ -36,6 +36,8 @@ class HybridRetriever:
             "query": {
 
                 "hybrid": {
+                    
+                    "pagination_depth": candidates,
 
                     "queries": [
 

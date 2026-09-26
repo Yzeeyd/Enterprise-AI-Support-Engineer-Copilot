@@ -1,6 +1,11 @@
 import os
+from dotenv import load_dotenv
+load_dotenv()
 
-PIPELINE_NAME = os.environ.get("PIPELINE_NAME")
+PIPELINE_NAME = os.getenv(
+    "PIPELINE_NAME",
+    "hybrid-rrf-pipeline"
+)
 
 
 def create_hybrid_pipeline(client) -> None:

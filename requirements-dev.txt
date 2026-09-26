@@ -10,3 +10,7 @@ pypdf
 fonttools
 langchain_ollama
 opensearch-py
+uvicorn[standard]
+fastapi 
+pytest
+httpx

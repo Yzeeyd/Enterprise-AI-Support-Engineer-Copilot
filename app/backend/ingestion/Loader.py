@@ -39,7 +39,7 @@ def load_pdf_docs(pdf_paths: list[str] | None = None) -> list[Document]:
 
 if __name__ == "__main__":
     # Example usage
-    folder_path = Path("data/raw/doc")
+    folder_path = Path("data\raw\enterprise_rag_kb\01_IT_Security_Policy.pdf")
 
     pdf_paths = [str(file.resolve()) for file in folder_path.rglob("*.pdf")]
 
