@@ -29,15 +29,13 @@ services:
 
 
   bootstrap:
-    build: .
+    build: 
+      context: .
+      dockerfile: app/backend/Dockerfile
+
     container_name: copilot-bootstrap
 
-    command:
-      [
-        "python",
-        "-m",
-        "app.backend.bootstrap"
-      ]
+    command: ["python","-m","app.backend.bootstrap"]
 
     environment:
       OPENSEARCH_HOST: opensearch
@@ -68,7 +66,10 @@ services:
 
 
   backend:
-    build: .
+    build: 
+      context: .
+      dockerfile: app/backend/Dockerfile
+
     container_name: copilot-backend
 
     ports:
@@ -97,7 +98,22 @@ services:
 
       bootstrap:
         condition: service_completed_successfully
+  
+  frontend:
 
+    build:
+      context: ./app/frontend
+
+    container_name: copilot-frontend
+
+    ports:
+      - "5173:5173"
+
+    environment:
+      VITE_PROXY_TARGET: http://backend:8000
+
+    depends_on:
+      - backend
 
 volumes:
 
