@@ -2,12 +2,12 @@ services:
 
   opensearch:
     image: opensearchproject/opensearch:3.8.0
-    container_name: opensearch
+    container_name: copilot-opensearch
 
     environment:
-      - discovery.type=single-node
-      - DISABLE_SECURITY_PLUGIN=true
-      - OPENSEARCH_JAVA_OPTS=-Xms1g -Xmx1g
+      discovery.type: single-node
+      DISABLE_SECURITY_PLUGIN: "true"
+      OPENSEARCH_JAVA_OPTS: "-Xms1g -Xmx1g"
 
     ports:
       - "9200:9200"
@@ -16,22 +16,91 @@ services:
     volumes:
       - opensearch-data:/usr/share/opensearch/data
 
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -fsS http://localhost:9200/_cluster/health || exit 1"
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+
+  bootstrap:
+    build: .
+    container_name: copilot-bootstrap
+
+    command:
+      [
+        "python",
+        "-m",
+        "app.backend.bootstrap"
+      ]
+
+    environment:
+      OPENSEARCH_HOST: opensearch
+      OPENSEARCH_PORT: "9200"
+
+      INDEX_NAME: knowledge-base
+      PIPELINE_NAME: hybrid-rrf-pipeline
+
+      DATAPATH: /app/data
+      INDEX_STATE_PATH: /app/runtime/index_state.json
+
+      OLLAMA_BASE_URL: http://host.docker.internal:11434
+
+      OLLAMA_EMBEDDING_MODEL: qwen3-embedding:latest
+      OLLAMA_LLM_MODEL: qwen3:8b
+
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+    volumes:
+      - ingestion-state:/app/runtime
+
+    depends_on:
+      opensearch:
+        condition: service_healthy
+
+    restart: "no"
+
 
   backend:
-    build: ./
+    build: .
     container_name: copilot-backend
 
     ports:
       - "8000:8000"
 
     environment:
-      - OPENSEARCH_HOST=opensearch
-      - OPENSEARCH_PORT=9200
-      - OLLAMA_BASE_URL=http://host.docker.internal:11434
+      OPENSEARCH_HOST: opensearch
+      OPENSEARCH_PORT: "9200"
+
+      INDEX_NAME: knowledge-base
+      PIPELINE_NAME: hybrid-rrf-pipeline
+
+      DATAPATH: /app/data
+
+      OLLAMA_BASE_URL: http://host.docker.internal:11434
+
+      OLLAMA_EMBEDDING_MODEL: qwen3-embedding:latest
+      OLLAMA_LLM_MODEL: qwen3.5:9b
+
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
     depends_on:
-      - opensearch
+      opensearch:
+        condition: service_healthy
+
+      bootstrap:
+        condition: service_completed_successfully
 
 
 volumes:
+
   opensearch-data:
+
+  ingestion-state:

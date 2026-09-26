@@ -1,5 +1,4 @@
-import os
-from pathlib import Path
+from app.backend.config import settings
 
 from app.backend.search.client import (
     get_opensearch_client
@@ -13,7 +12,7 @@ from app.backend.search.repository import (
     OpenSearchRepository
 )
 
-from app.backend.embeddings.ollama import (
+from app.backend.embeddings import (
     get_embeddings_model
 )
 
@@ -24,49 +23,46 @@ from app.backend.ingestion.service import (
 
 def index_documents_pipeline():
 
-    data_path = Path(
-        os.getenv("DATAPATH")
-    )
-
-    documents_root = (
-        data_path / "raw" / "doc"
-    )
-
-    state_path = (
-        data_path / "index_state.json"
-    )
-
-    # Dependencies
     client = get_opensearch_client()
+
     embeddings = get_embeddings_model()
 
-    # Make sure index exists
-    probe_vector = embeddings.embed_query(
-        "dimension probe"
+    probe_vector = (
+        embeddings.embed_query(
+            "dimension probe"
+        )
     )
 
     create_index(
         client=client,
-        embedding_dimension=len(probe_vector),
+        embedding_dimension=len(
+            probe_vector
+        )
     )
 
-    # Repository
     repository = OpenSearchRepository(
         client=client,
-        embedding_model=embeddings,
+        embedding_model=embeddings
     )
 
-    # Ingestion Service
     service = IngestionService(
         repository=repository,
-        documents_root=documents_root,
-        state_path=state_path,
+
+        documents_root=(
+            settings.data_path
+            / "raw"
+            / "doc"
+        ),
+
+        state_path=(
+            settings.index_state_path
+        )
     )
 
-    results = service.ingest_folder()
-
-    print(results)
+    return service.ingest_folder()
 
 
 if __name__ == "__main__":
-    index_documents_pipeline()
+    print(
+        index_documents_pipeline()
+    )

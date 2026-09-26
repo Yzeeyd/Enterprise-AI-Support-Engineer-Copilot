@@ -4,3 +4,6 @@
 __pycache__
 *.pyc
 database
+
+data/index_state.json
+runtime/

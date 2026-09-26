@@ -1,16 +1,4 @@
-deepagents
-langchain
-langchain[openai] 
-langchain-text-splitters 
-requests 
-numpy
-dotenv
-langchain_community
-pypdf
-fonttools
-langchain_ollama
-opensearch-py
-uvicorn[standard]
-fastapi 
+-r requirements.txt
+
 pytest
 httpx

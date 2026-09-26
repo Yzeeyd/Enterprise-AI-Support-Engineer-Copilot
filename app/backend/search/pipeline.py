@@ -1,17 +1,14 @@
-import os
-from dotenv import load_dotenv
-load_dotenv()
+from app.backend.config import settings
 
-PIPELINE_NAME = os.getenv(
-    "PIPELINE_NAME",
-    "hybrid-rrf-pipeline"
-)
+
+PIPELINE_NAME = settings.pipeline_name
 
 
 def create_hybrid_pipeline(client) -> None:
 
     body = {
-        "description": "Hybrid BM25 + Vector search using RRF",
+        "description":
+            "Hybrid BM25 + Vector search using RRF",
 
         "phase_results_processors": [
             {
@@ -30,16 +27,3 @@ def create_hybrid_pipeline(client) -> None:
         url=f"/_search/pipeline/{PIPELINE_NAME}",
         body=body
     )
-
-
-if __name__ == "__main__":
-
-    from app.backend.search.client import (
-        get_opensearch_client
-    )
-
-    client = get_opensearch_client()
-
-    create_hybrid_pipeline(client)
-
-    print("Hybrid RRF pipeline created.")

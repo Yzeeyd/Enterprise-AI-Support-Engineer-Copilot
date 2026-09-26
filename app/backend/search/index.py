@@ -1,31 +1,27 @@
-from dotenv import load_dotenv
-import os
-load_dotenv()
+from app.backend.config import settings
 
-INDEX_NAME = os.getenv("INDEX_NAME")
+
+INDEX_NAME = settings.index_name
+
 
 def create_index(
     client,
     embedding_dimension: int
-):
+) -> bool:
 
     if client.indices.exists(
         index=INDEX_NAME
     ):
-        return
+        return False
 
     body = {
-
         "settings": {
-
             "index": {
                 "knn": True
             }
-
         },
 
         "mappings": {
-
             "properties": {
 
                 "chunk_id": {
@@ -37,11 +33,9 @@ def create_index(
                 },
 
                 "content": {
-
                     "type": "text",
 
                     "fields": {
-
                         "ar": {
                             "type": "text",
                             "analyzer": "arabic"
@@ -55,26 +49,16 @@ def create_index(
                 },
 
                 "embedding": {
-
                     "type": "knn_vector",
-
-                    "dimension":
-                        embedding_dimension,
+                    "dimension": embedding_dimension,
 
                     "method": {
-
                         "name": "hnsw",
-
-                        "space_type":
-                            "cosinesimil",
-
-                        "engine":
-                            "lucene",
+                        "space_type": "cosinesimil",
+                        "engine": "lucene",
 
                         "parameters": {
-
                             "ef_construction": 100,
-
                             "m": 16
                         }
                     }
@@ -91,3 +75,5 @@ def create_index(
         index=INDEX_NAME,
         body=body
     )
+
+    return True

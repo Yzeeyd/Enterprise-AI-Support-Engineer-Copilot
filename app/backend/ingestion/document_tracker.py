@@ -2,29 +2,54 @@ import hashlib
 import json
 from pathlib import Path
 
-def calculate_file_hash(file_path: str) -> str:
+
+def calculate_file_hash(
+    file_path: str
+) -> str:
+
+    sha256 = hashlib.sha256()
+
     with open(file_path, "rb") as file:
-        content = file.read()
 
-    return hashlib.sha256(content).hexdigest()
+        for block in iter(lambda: file.read(1024 * 1024),b""):
+            sha256.update(block)
 
-def get_document_id(file_path: str, documents_folder: str) -> str:
+    return sha256.hexdigest()
+
+
+def get_document_id(
+    file_path: str,
+    documents_folder: str
+) -> str:
+
     file = Path(file_path).resolve()
     root = Path(documents_folder).resolve()
 
-    return str(file.relative_to(root))
+    return (
+        file
+        .relative_to(root)
+        .as_posix()
+    )
 
-def file_exists(file_id: str) -> bool:
-    """Check if a file exists at the given path."""
 
+def save_index_state(
+    state_path,
+    state: dict
+) -> None:
 
-    return Path(file_id).is_file()
-
-def save_index_state(state_path: str, state: dict) -> None:
     path = Path(state_path)
-    if not path.parent.exists():
-        path.parent.mkdir(parents=True, exist_ok=True)
-    with open(path, "w", encoding="utf-8") as file:
+
+    path.parent.mkdir(
+        parents=True,
+        exist_ok=True
+    )
+
+    with open(
+        path,
+        "w",
+        encoding="utf-8"
+    ) as file:
+
         json.dump(
             state,
             file,
@@ -33,14 +58,23 @@ def save_index_state(state_path: str, state: dict) -> None:
         )
 
 
-def load_index_state(state_path: str) -> dict:
+def load_index_state(
+    state_path
+) -> dict:
+
     path = Path(state_path)
 
     if not path.exists():
         return {}
 
-    with open(path, "r", encoding="utf-8") as file:
+    with open(
+        path,
+        "r",
+        encoding="utf-8"
+    ) as file:
+
         return json.load(file)
+
 
 def get_document_status(
     document_id: str,
@@ -48,14 +82,17 @@ def get_document_status(
     state: dict
 ) -> str:
 
-    old_document = state.get(document_id)
+    old_document = state.get(
+        document_id
+    )
 
     if old_document is None:
         return "new"
 
-    if old_document["hash"] == current_hash:
+    if (
+        old_document.get("hash")
+        == current_hash
+    ):
         return "unchanged"
 
     return "changed"
-
-
