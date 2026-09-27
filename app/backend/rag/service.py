@@ -296,7 +296,7 @@ if __name__ == "__main__":
         )
 
         print(
-            f"RRF score: "
+            f"Retrieval score: "
             f"{source['score']}"
         )
 
