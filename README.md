@@ -1,32 +1,39 @@
 # Enterprise AI Support Engineer Copilot
 
-An end-to-end enterprise support assistant built with **Hybrid Retrieval-Augmented Generation (RAG)**.
+An end-to-end **Enterprise Retrieval-Augmented Generation (RAG)** system for answering internal support and policy questions using a hybrid retrieval pipeline.
 
-The system retrieves relevant information from internal knowledge-base documents using **BM25 lexical search** and **vector similarity search**, combines the rankings using **Reciprocal Rank Fusion (RRF)** in OpenSearch, and provides grounded answers with source citations.
+The system combines **BM25 keyword search** and **vector semantic search** inside OpenSearch, merges the rankings using **Reciprocal Rank Fusion (RRF)**, and provides grounded LLM responses with source citations.
 
-> The documents included in this repository are synthetic portfolio data and do not represent real company policies.
+> All knowledge-base documents included in this repository are synthetic and were created for educational and portfolio purposes. They do not represent real company policies.
 
 ---
 
-## Features
+## Overview
 
-- Hybrid RAG retrieval
-  - BM25 keyword search
-  - Vector similarity search
-  - Reciprocal Rank Fusion (RRF)
-- OpenSearch vector and text indexing
-- Incremental document ingestion
-- Document change tracking
+The project demonstrates a production-oriented RAG workflow covering:
+
+- Document ingestion
+- Incremental document tracking
+- Chunking
+- Embedding generation
+- OpenSearch indexing
+- BM25 retrieval
+- Vector retrieval
+- Hybrid search
+- Reciprocal Rank Fusion
+- Context construction
+- LLM generation
 - Source citations
-- Arabic and English document support
-- Local LLM inference using Ollama
-- FastAPI REST API
+- REST API
 - React frontend
-- Docker Compose environment
-- One-shot bootstrap initialization
-- Unit, integration, and end-to-end testing
+- Dockerized infrastructure
+- Automated testing
+- Retrieval evaluation
+- CI with GitHub Actions
 
 ---
+
+# Architecture
 
 ## System Architecture
 
@@ -39,37 +46,44 @@ flowchart LR
     RAG[RAG Service]
     Retriever[Hybrid Retriever]
     OpenSearch[(OpenSearch)]
+    Embedding[Embedding Model]
     LLM[Ollama LLM]
 
     User --> Frontend
     Frontend -->|POST /api/v1/chat| API
     API --> RAG
+
     RAG --> Retriever
+
+    Retriever --> Embedding
     Retriever --> OpenSearch
+
     OpenSearch --> Retriever
-    Retriever --> RAG
-    RAG -->|Retrieved Context| LLM
+
+    Retriever -->|Top-K Chunks| RAG
+
+    RAG -->|Prompt + Context| LLM
     LLM -->|Grounded Answer| RAG
+
     RAG -->|Answer + Sources| API
     API --> Frontend
 ```
 
-The online request path is intentionally kept simple in the MVP to clearly demonstrate the core RAG workflow.
+The MVP intentionally keeps the online request path simple in order to clearly demonstrate the core RAG architecture.
 
 ---
 
-## Retrieval Architecture
+# Hybrid Retrieval
 
-The retrieval layer uses OpenSearch Hybrid Search.
+The retrieval layer combines lexical and semantic search.
 
 ```mermaid
 flowchart TD
 
     Query[User Query]
 
-    Embed[Embedding Model]
-
     BM25[BM25 Search]
+    Embed[Query Embedding]
     Vector[Vector kNN Search]
 
     Hybrid[OpenSearch Hybrid Query]
@@ -92,23 +106,50 @@ flowchart TD
 
     RRF --> TopK
     TopK --> Context
+
     Context --> LLM
     LLM --> Answer
 ```
 
-### Why Hybrid Search?
+## Why Hybrid Search?
 
-Keyword search and semantic search solve different retrieval problems.
+BM25 and vector search solve different retrieval problems.
 
-**BM25** performs well when the query contains exact terminology that also exists in the documents.
+### BM25
 
-**Vector Search** captures semantic similarity even when the user and document use different wording.
+BM25 performs well when the user query contains terminology that directly appears in the source documents.
 
-The system combines both retrieval paths and uses **RRF** to produce a final ranked list without manually comparing incompatible BM25 and vector similarity scores.
+Examples:
+
+- VPN
+- SLA
+- MFA
+- AWS
+- password
+
+### Vector Search
+
+Vector retrieval captures semantic similarity when the user's wording differs from the document wording.
+
+### Reciprocal Rank Fusion
+
+BM25 scores and vector similarity scores are not directly comparable.
+
+Instead of manually combining incompatible scores, OpenSearch uses **Reciprocal Rank Fusion (RRF)** to combine the rankings produced by both retrieval methods.
+
+```text
+BM25 Results
+      \
+       \
+        → RRF → Final Ranking
+       /
+      /
+Vector Results
+```
 
 ---
 
-## Ingestion Pipeline
+# Ingestion Pipeline
 
 ```mermaid
 flowchart TD
@@ -116,60 +157,83 @@ flowchart TD
     PDFs[Policy PDFs]
     Tracker[Document Tracker]
 
-    Check{Document State}
+    State{Document State}
 
     Loader[PDF Loader]
     Chunker[Text Chunker]
-    Embeddings[Embedding Model]
+    Embedding[Embedding Model]
     Repository[OpenSearch Repository]
 
     OpenSearch[(OpenSearch)]
 
     Skip[Skip]
-    Delete[Delete Old Chunks]
+    Delete[Delete Previous Chunks]
 
     PDFs --> Tracker
-    Tracker --> Check
+    Tracker --> State
 
-    Check -->|New| Loader
-    Check -->|Changed| Delete
+    State -->|New| Loader
+
+    State -->|Changed| Delete
     Delete --> Loader
 
-    Check -->|Unchanged| Skip
+    State -->|Unchanged| Skip
 
     Loader --> Chunker
-    Chunker --> Embeddings
-    Embeddings --> Repository
+    Chunker --> Embedding
+    Embedding --> Repository
+
     Repository --> OpenSearch
 ```
 
-The ingestion pipeline tracks document state so unchanged documents do not need to be embedded and indexed again.
+The ingestion system tracks documents so that unnecessary reprocessing can be avoided.
 
-When a document changes, its previous chunks are removed and the new version is indexed.
+Current behavior:
+
+```text
+New document
+    → Load
+    → Chunk
+    → Embed
+    → Index
+
+Changed document
+    → Delete old chunks
+    → Reprocess
+    → Reindex
+
+Unchanged document
+    → Skip
+
+Deleted document
+    → Remove from OpenSearch
+```
+
+This prevents the entire knowledge base from being embedded again every time the application starts.
 
 ---
 
-## Application Startup
+# Bootstrap Process
 
-The local Docker environment uses a one-shot bootstrap service before starting the API.
+The Docker environment uses a one-shot bootstrap container before starting the API.
 
 ```mermaid
 flowchart LR
 
-    Docker[Docker Compose]
+    Compose[Docker Compose]
 
-    OS[OpenSearch]
-    Bootstrap[Bootstrap Job]
+    OpenSearch[OpenSearch]
+    Bootstrap[Bootstrap Container]
     Backend[FastAPI Backend]
     Frontend[React Frontend]
 
-    Docker --> OS
+    Compose --> OpenSearch
 
-    OS -->|Healthy| Bootstrap
+    OpenSearch -->|Healthy| Bootstrap
 
-    Bootstrap -->|Ensure Index| OS
-    Bootstrap -->|Ensure RRF Pipeline| OS
-    Bootstrap -->|Incremental Ingestion| OS
+    Bootstrap -->|Create / Verify Index| OpenSearch
+    Bootstrap -->|Create RRF Pipeline| OpenSearch
+    Bootstrap -->|Incremental Ingestion| OpenSearch
 
     Bootstrap -->|Completed Successfully| Backend
 
@@ -178,72 +242,211 @@ flowchart LR
 
 The bootstrap process:
 
-1. Waits for OpenSearch.
+1. Waits for OpenSearch readiness.
 2. Verifies Ollama availability.
-3. Creates the OpenSearch index if required.
-4. Creates or updates the Hybrid RRF search pipeline.
+3. Creates the knowledge-base index when required.
+4. Creates or updates the OpenSearch RRF search pipeline.
 5. Runs incremental document ingestion.
 6. Exits successfully.
-7. Allows the API container to start.
+7. Allows the FastAPI backend to start.
 
-This keeps infrastructure initialization separate from FastAPI request serving.
+This keeps initialization logic separate from request-serving logic.
 
 ---
 
-## Tech Stack
+# Retrieval Evaluation
 
-### AI / RAG
+The hybrid retrieval system was evaluated using a manually labeled dataset containing **20 enterprise support queries** covering all **10 synthetic knowledge-base documents**.
+
+Evaluation is performed at the **document level**.
+
+The evaluation suite uses `ranx`.
+
+## Results
+
+| Metric | Score |
+|---|---:|
+| Hit Rate@1 | **95.0%** |
+| Hit Rate@3 | **100.0%** |
+| Hit Rate@5 | **100.0%** |
+| MRR@5 | **0.975** |
+| NDCG@5 | **0.982** |
+
+The correct document was retrieved within the **Top 3 results for all 20 evaluation queries**.
+
+## Metric Interpretation
+
+### Hit Rate@1
+
+Measures whether a relevant document appears as the first result.
+
+```text
+19 / 20 queries
+```
+
+returned the expected document at Rank 1.
+
+### Hit Rate@3
+
+Measures whether the expected document appears within the first three retrieved documents.
+
+```text
+20 / 20 queries
+```
+
+succeeded.
+
+### Hit Rate@5
+
+Measures whether the expected document appears within the first five retrieved documents.
+
+```text
+20 / 20 queries
+```
+
+succeeded.
+
+### MRR@5
+
+Mean Reciprocal Rank measures how highly the first relevant document is ranked.
+
+Current result:
+
+```text
+MRR@5 = 0.975
+```
+
+### NDCG@5
+
+Normalized Discounted Cumulative Gain evaluates ranking quality while giving greater importance to documents retrieved near the top.
+
+Current result:
+
+```text
+NDCG@5 = 0.982
+```
+
+---
+
+# Retrieval Error Analysis
+
+The evaluation suite also performs Top-1 error analysis.
+
+One query did not retrieve the expected document at Rank 1:
+
+```text
+Query ID:
+sla-001
+
+Question:
+كم الوقت المتوقع لحل مشكلة الدعم؟
+
+Expected document:
+07_اتفاقية_مستويات_الخدمة_SLA.pdf
+
+Top-1 result:
+02_دليل_استعادة_الحساب_ومشاكل_تسجيل_الدخول.pdf
+
+Expected document rank:
+2
+```
+
+The expected SLA document was still retrieved at **Rank 2**.
+
+Because the RAG pipeline sends multiple top-ranked chunks to the context builder, the relevant document remains available to the generation stage.
+
+No retrieval tuning was applied solely to optimize this single evaluation example.
+
+> These metrics measure retrieval performance on the current manually labeled 20-query evaluation set. They should not be interpreted as overall system or LLM answer accuracy.
+
+---
+
+# Tech Stack
+
+## AI / RAG
 
 - Python
-- LangChain utilities
+- LangChain components
 - Ollama
-- `qwen3-embedding`
 - Qwen LLM
+- Qwen Embeddings
+- Retrieval-Augmented Generation
 - Hybrid Retrieval
-- RRF
+- Reciprocal Rank Fusion
 
-### Search
+## Search
 
 - OpenSearch 3
 - BM25
 - kNN Vector Search
-- OpenSearch Hybrid Search Pipeline
+- OpenSearch Hybrid Query
+- OpenSearch Search Pipelines
+- RRF
 
-### Backend
+## Backend
 
 - FastAPI
 - Pydantic
 - Uvicorn
 
-### Frontend
+## Frontend
 
 - React
 - Vite
 
-### Infrastructure
+## Infrastructure
 
 - Docker
 - Docker Compose
 
-### Testing
+## Testing
 
 - Pytest
 - HTTPX
 
+## Evaluation
+
+- ranx
+
+## CI
+
+- GitHub Actions
+
 ---
 
-## Project Structure
+# Project Structure
 
 ```text
 .
 ├── app/
 │   ├── backend/
 │   │   ├── api/
+│   │   │   ├── dependencies.py
+│   │   │   ├── models.py
+│   │   │   └── routes.py
+│   │   │
 │   │   ├── embeddings/
+│   │   │
 │   │   ├── ingestion/
+│   │   │   ├── Chunker.py
+│   │   │   ├── Loader.py
+│   │   │   ├── document_tracker.py
+│   │   │   └── service.py
+│   │   │
 │   │   ├── llm/
+│   │   │
 │   │   ├── rag/
+│   │   │   ├── bm25_retriever.py
+│   │   │   ├── vector_retriever.py
+│   │   │   ├── hybrid_retriever.py
+│   │   │   └── service.py
+│   │   │
 │   │   ├── search/
+│   │   │   ├── client.py
+│   │   │   ├── index.py
+│   │   │   ├── pipeline.py
+│   │   │   └── repository.py
+│   │   │
 │   │   ├── bootstrap.py
 │   │   ├── config.py
 │   │   ├── main.py
@@ -252,27 +455,61 @@ This keeps infrastructure initialization separate from FastAPI request serving.
 │   └── frontend/
 │       ├── src/
 │       │   ├── api/
-│       │   └── components/
+│       │   ├── components/
+│       │   ├── App.jsx
+│       │   └── styles.css
+│       │
 │       ├── Dockerfile
-│       └── package.json
+│       ├── package.json
+│       └── vite.config.js
 │
 ├── data/
 │   └── raw/
 │       └── doc/
 │
+├── eval/
+│   ├── questions.json
+│   └── evaluate_retrieval.py
+│
 ├── tests/
+│   ├── test_api.py
+│   ├── test_opensearch.py
+│   ├── test_rag_service.py
+│   ├── test_integration_rag.py
+│   └── test_e2e_api.py
+│
+├── .github/
+│   └── workflows/
+│       └── ci.yml
 │
 ├── docker-compose.yml
+├── pytest.ini
 ├── requirements.txt
-├── requirements-dev.txt
-└── pytest.ini
+└── requirements-dev.txt
 ```
 
 ---
 
-## API
+# Knowledge Base
 
-### Health Check
+The current synthetic knowledge base contains documents covering:
+
+1. Password and MFA policy
+2. Account recovery and login problems
+3. VPN and remote work
+4. Email and calendar support
+5. Employee devices and performance
+6. Incident management and escalation
+7. Service Level Agreements
+8. Information security and data handling
+9. Internal AWS support
+10. Technical support FAQs
+
+---
+
+# API
+
+## Health Check
 
 ```http
 GET /health
@@ -286,13 +523,15 @@ Response:
 }
 ```
 
-### Chat
+---
+
+## Chat
 
 ```http
 POST /api/v1/chat
 ```
 
-Example request:
+Example:
 
 ```json
 {
@@ -301,11 +540,11 @@ Example request:
 }
 ```
 
-Example response structure:
+Response structure:
 
 ```json
 {
-  "answer": "Answer generated using the retrieved enterprise knowledge...",
+  "answer": "Generated grounded answer with citations [1].",
   "sources": [
     {
       "id": 1,
@@ -320,28 +559,37 @@ Example response structure:
 }
 ```
 
-> OpenSearch RRF scores represent ranking signals and should not be interpreted as confidence probabilities.
+> RRF scores are ranking signals and should not be interpreted as confidence probabilities.
 
 ---
 
-## Running Locally
+# Running Locally
 
-### Requirements
+## Requirements
 
 Install:
 
 - Docker Desktop
-- Python 3.11+ for local development/testing
 - Ollama
+- Python 3.11+ for development and testing
 
-Pull the required models:
+---
+
+## Ollama Models
+
+Pull the embedding model:
 
 ```bash
 ollama pull qwen3-embedding:latest
+```
+
+Pull the chat model:
+
+```bash
 ollama pull qwen3.5:9b
 ```
 
-Verify Ollama:
+Verify installed models:
 
 ```bash
 ollama list
@@ -349,45 +597,68 @@ ollama list
 
 ---
 
-### Start the Application
+# Start the Application
 
-From the project root:
+From the repository root:
 
 ```bash
 docker compose up --build
 ```
 
-Or run it in detached mode:
+Or run in detached mode:
 
 ```bash
 docker compose up --build -d
 ```
 
-Check container status:
+Check containers:
 
 ```bash
 docker compose ps
 ```
 
-The application will be available at:
+Expected services:
 
 ```text
+copilot-opensearch
+copilot-bootstrap
+copilot-backend
+copilot-frontend
+```
+
+The bootstrap container should complete successfully and exit after initialization.
+
+---
+
+# Local Services
+
 Frontend:
+
+```text
 http://localhost:5173
+```
 
 Backend:
-http://localhost:8000
 
-FastAPI Docs:
+```text
+http://localhost:8000
+```
+
+FastAPI Swagger documentation:
+
+```text
 http://localhost:8000/docs
+```
 
 OpenSearch:
+
+```text
 http://localhost:9200
 ```
 
 ---
 
-## Testing
+# Testing
 
 Install development dependencies:
 
@@ -395,21 +666,26 @@ Install development dependencies:
 pip install -r requirements-dev.txt
 ```
 
-### Unit Tests
+## Unit Tests
 
 ```bash
 pytest -m "not integration and not e2e" -v
 ```
 
-### Integration Tests
+These tests do not require the complete infrastructure stack.
 
-Integration tests verify the real retrieval infrastructure, including:
+---
+
+## Integration Tests
+
+Integration tests validate:
 
 - OpenSearch connectivity
-- Knowledge-base index
+- Knowledge-base index availability
 - Indexed documents
-- RRF search pipeline
+- RRF pipeline availability
 - Hybrid retrieval
+- Relevant document retrieval
 
 Run:
 
@@ -417,21 +693,27 @@ Run:
 pytest -m integration -v
 ```
 
-### End-to-End Tests
+OpenSearch and Ollama must be available.
 
-The E2E test sends a real HTTP request through:
+---
+
+## End-to-End Tests
+
+The E2E suite sends real requests through the complete application flow:
 
 ```text
+HTTP Request
+     ↓
 FastAPI
-  ↓
+     ↓
 RAG Service
-  ↓
+     ↓
 Hybrid Retriever
-  ↓
+     ↓
 OpenSearch
-  ↓
+     ↓
 Ollama
-  ↓
+     ↓
 Answer + Sources
 ```
 
@@ -441,18 +723,66 @@ Run:
 pytest -m e2e -v
 ```
 
-The Docker environment and Ollama must be running before executing integration or E2E tests.
+---
+
+# Retrieval Evaluation
+
+With OpenSearch and Ollama running:
+
+```bash
+python -m eval.evaluate_retrieval
+```
+
+Example output:
+
+```text
+Retrieval Evaluation
+========================================
+Queries         20
+hit_rate@1      0.9500
+hit_rate@3      1.0000
+hit_rate@5      1.0000
+mrr@5           0.9750
+ndcg@5          0.9815
+
+Top-1 Error Analysis
+========================================
+Top-1 misses: 1
+```
 
 ---
 
-## Current MVP Scope
+# Continuous Integration
 
-The current version focuses on demonstrating the core RAG engineering workflow:
+GitHub Actions runs automatically on pushes and pull requests.
+
+The current CI pipeline performs:
+
+```text
+Push / Pull Request
+        |
+        +----------------------+
+        |                      |
+        v                      v
+Backend Unit Tests       Frontend Build
+        |                      |
+     Pytest                 Vite Build
+```
+
+Integration and E2E tests are currently kept separate because they require OpenSearch and Ollama infrastructure.
+
+---
+
+# Current MVP Scope
+
+The current version focuses on clearly demonstrating the core AI engineering workflow:
 
 ```text
 Documents
    ↓
-Incremental Ingestion
+Document Tracking
+   ↓
+Loading
    ↓
 Chunking
    ↓
@@ -464,92 +794,225 @@ BM25 + Vector Search
    ↓
 RRF
    ↓
-Context
+Top-K Context
    ↓
 LLM
    ↓
 Answer + Citations
 ```
 
-The MVP intentionally avoids adding unnecessary application layers before the core retrieval system is validated.
+---
+
+# Current Limitations
+
+The current MVP assumes that incoming user messages are enterprise support questions.
+
+There is currently no intent router before the RAG pipeline.
+
+Therefore:
+
+- Greetings may enter retrieval.
+- Completely unrelated queries may enter retrieval.
+- Out-of-domain detection is limited.
+- Conversation memory is not currently implemented.
+
+These features are intentionally deferred to keep the first version focused on demonstrating and validating the core RAG system.
 
 ---
 
-## Current Limitations
-
-The current version assumes that user messages are enterprise support questions.
-
-As a result, greetings, unrelated questions, or out-of-domain requests may still enter the RAG pipeline.
-
-This behavior is intentionally left simple in the first version so the architecture clearly demonstrates the core RAG implementation.
-
----
-
-## Planned Improvements
+# Planned Improvements
 
 Future iterations may include:
 
-- Query / intent routing
+- Query and intent routing
 - Out-of-scope detection
 - Conversation memory
 - Reranking
-- Streaming responses
+- Streaming LLM responses
 - Authentication and authorization
-- Observability and tracing
-- RAG evaluation pipeline
+- Retrieval observability
+- LLM tracing
+- Answer-level RAG evaluation
 - AWS deployment
 - Infrastructure as Code with Terraform
 
 ---
 
-## Cloud Roadmap
+# Planned AWS Architecture
 
-A future AWS architecture can replace local infrastructure while preserving the same application boundaries.
+The application is designed so local components can later be replaced by managed AWS services.
 
-```text
-Documents
-   ↓
-Amazon S3
-   ↓
-Ingestion Job
-   ↓
-Amazon OpenSearch Service
+```mermaid
+flowchart LR
 
-User
-   ↓
-CloudFront
-   ↓
-Frontend
-   ↓
-Backend Service
-   ↓
-OpenSearch
-   ↓
-Amazon Bedrock
+    User[User]
+
+    CloudFront[CloudFront]
+    Frontend[S3 Frontend]
+
+    Backend[Backend Service]
+
+    OpenSearch[(Amazon OpenSearch Service)]
+
+    Bedrock[Amazon Bedrock]
+
+    Documents[(Amazon S3)]
+
+    Ingestion[Ingestion Job]
+
+    User --> CloudFront
+    CloudFront --> Frontend
+
+    Frontend --> Backend
+
+    Backend --> OpenSearch
+    Backend --> Bedrock
+
+    Documents --> Ingestion
+    Ingestion --> OpenSearch
 ```
 
-The LLM and embedding layers are isolated behind application abstractions so local Ollama implementations can later be replaced with managed cloud models.
+Potential migration path:
+
+```text
+Local PDFs
+→ Amazon S3
+
+Local OpenSearch
+→ Amazon OpenSearch Service
+
+Local Ollama
+→ Amazon Bedrock
+
+Local Backend Container
+→ AWS Container Service
+
+Local Frontend
+→ S3 + CloudFront
+```
 
 ---
 
-## Purpose
+# Engineering Decisions
 
-This project was built as an AI engineering portfolio project to demonstrate practical understanding of:
+## Why OpenSearch?
+
+OpenSearch supports both:
+
+- Traditional lexical search
+- Vector similarity search
+
+inside the same search engine.
+
+This allows the project to implement hybrid retrieval without maintaining separate keyword and vector databases.
+
+---
+
+## Why RRF?
+
+BM25 and vector search generate scores with different meanings and scales.
+
+RRF combines their **rank positions** instead of attempting to directly normalize and combine incompatible scores.
+
+---
+
+## Why Incremental Ingestion?
+
+Re-embedding every document during every application startup is inefficient.
+
+The document tracker allows the system to identify:
+
+```text
+New
+Changed
+Unchanged
+Deleted
+```
+
+documents and process only the required changes.
+
+---
+
+## Why Separate Bootstrap From FastAPI?
+
+FastAPI should primarily serve application requests.
+
+Infrastructure initialization and ingestion are separate concerns.
+
+The one-shot bootstrap service handles environment preparation before the API begins serving traffic.
+
+---
+
+## Why Evaluate Retrieval Separately?
+
+A RAG application can produce poor answers because of either:
+
+```text
+Retrieval failure
+```
+
+or:
+
+```text
+Generation failure
+```
+
+Evaluating retrieval independently makes it possible to identify whether the correct source material reaches the LLM before evaluating generation quality.
+
+---
+
+# Purpose
+
+This project was built as an **AI Engineering portfolio project** to demonstrate practical knowledge of:
 
 - Retrieval-Augmented Generation
-- Hybrid retrieval
-- Search systems
+- Hybrid information retrieval
+- BM25
+- Vector search
 - Embeddings
-- Vector databases
+- Reciprocal Rank Fusion
+- OpenSearch
 - LLM integration
-- Backend API design
-- Containerization
-- Incremental data ingestion
-- Testing AI applications
-- Production-oriented software architecture
+- Grounded generation
+- Source attribution
+- Backend API development
+- React frontend integration
+- Docker
+- Incremental data pipelines
+- Unit testing
+- Integration testing
+- End-to-end testing
+- Information retrieval evaluation
+- CI workflows
+- Production-oriented system design
+
+---
+
+# Roadmap
+
+```text
+Core RAG                ✅
+Hybrid Retrieval        ✅
+OpenSearch              ✅
+RRF                     ✅
+Incremental Ingestion   ✅
+FastAPI                 ✅
+React Frontend          ✅
+Docker Compose          ✅
+Bootstrap               ✅
+Unit Tests              ✅
+Integration Tests       ✅
+E2E Tests               ✅
+Retrieval Evaluation    ✅
+Error Analysis          ✅
+GitHub Actions CI       ✅
+
+AWS Deployment          ⏳
+Terraform               ⏳
+```
 
 ---
 
 ## License
 
-This project is intended for educational and portfolio purposes.
+This repository is intended for educational and portfolio use.
