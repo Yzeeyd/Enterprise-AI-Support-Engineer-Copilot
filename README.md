@@ -101,8 +101,6 @@ flowchart LR
 | Authentication to AWS services | IAM + SigV4 |
 | Lambda image storage | Amazon ECR |
 
-The Lambda function uses its **IAM execution role**. AWS access keys are not stored in application environment files.
-
 ---
 
 ## Local Development Architecture
@@ -651,10 +649,6 @@ ollama list
 cp .env.example .env
 ```
 
-The repository ignores `.env` files but tracks `.env.example`.
-
-Do not store AWS access keys in `.env`.
-
 ## 4. Start the Stack
 
 ```bash
@@ -867,34 +861,6 @@ The application signs OpenSearch Serverless requests with SigV4 using service na
 aoss
 ```
 
----
-
-# Security Notes
-
-This repository does not require AWS access keys to be stored in source control.
-
-Recommended practices used by the project:
-
-- `.env` is ignored.
-- `.env.example` contains non-secret configuration examples only.
-- Lambda obtains credentials through its IAM execution role.
-- OpenSearch Serverless uses IAM + SigV4.
-- The frontend S3 bucket is private behind CloudFront.
-- Local AWS deployment artifacts are excluded from Git.
-
-The current portfolio deployment uses a public Lambda Function URL for demonstration purposes.
-
-For a production environment, add authentication and restrict CORS/origins, for example using:
-
-- API Gateway
-- Amazon Cognito
-- IAM authentication
-- CloudFront-controlled API access
-
-Also add rate limiting, request monitoring, and budget alarms before exposing a production AI endpoint publicly.
-
----
-
 # Design Decisions
 
 ## Why RAG Instead of Fine-Tuning?
@@ -977,15 +943,10 @@ The MVP is intentionally focused on demonstrating a clear, testable RAG architec
 
 Potential future improvements:
 
-1. Add API authentication.
-2. Restrict CORS to the CloudFront domain.
-3. Add request-level observability and structured tracing.
-4. Add CloudWatch alarms and cost budgets.
-5. Move document ingestion to an event-driven S3 workflow.
-6. Add a reranker and evaluate it against the existing benchmark.
-7. Add Terraform or AWS CDK for reproducible infrastructure.
-8. Add a larger holdout evaluation set.
-9. Add conversational memory only when the use case requires it.
+1. Add CloudWatch alarms and cost budgets.
+2. Move document ingestion to an event-driven S3 workflow.
+3. Add Terraform or AWS CDK for reproducible infrastructure.
+
 
 ---
 
