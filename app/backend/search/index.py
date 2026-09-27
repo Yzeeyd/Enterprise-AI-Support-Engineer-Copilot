@@ -14,6 +14,36 @@ def create_index(
     ):
         return False
 
+    embedding_mapping = {
+        "type": "knn_vector",
+        "dimension": embedding_dimension
+    }
+
+    if settings.opensearch_provider == "serverless":
+
+        embedding_mapping.update(
+            {
+                "space_type": "cosinesimil",
+                "compression_level": "1x"
+            }
+        )
+
+    else:
+
+        embedding_mapping.update(
+            {
+                "method": {
+                    "name": "hnsw",
+                    "space_type": "cosinesimil",
+                    "engine": "lucene",
+                    "parameters": {
+                        "ef_construction": 100,
+                        "m": 16
+                    }
+                }
+            }
+        )
+
     body = {
         "settings": {
             "index": {
@@ -48,21 +78,7 @@ def create_index(
                     }
                 },
 
-                "embedding": {
-                    "type": "knn_vector",
-                    "dimension": embedding_dimension,
-
-                    "method": {
-                        "name": "hnsw",
-                        "space_type": "cosinesimil",
-                        "engine": "lucene",
-
-                        "parameters": {
-                            "ef_construction": 100,
-                            "m": 16
-                        }
-                    }
-                },
+                "embedding": embedding_mapping,
 
                 "metadata": {
                     "type": "object"

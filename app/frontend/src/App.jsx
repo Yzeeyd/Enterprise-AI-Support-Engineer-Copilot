@@ -19,7 +19,7 @@ function App() {
             </h1>
 
             <p>
-              Hybrid RAG • OpenSearch • Ollama
+              Hybrid RAG • OpenSearch Serverless • Amazon Bedrock
             </p>
           </div>
 

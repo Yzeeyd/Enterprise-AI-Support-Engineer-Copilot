@@ -76,10 +76,19 @@ def main():
 
 
         # Documents returned by retriever
-        retrieved_documents = [
+        retrieved_documents = []
+
+    for hit in results:
+
+        document_id = (
             hit["_source"]["document_id"]
-            for hit in results
-        ]
+        )
+
+        if document_id not in retrieved_documents:
+
+            retrieved_documents.append(
+                document_id
+            )
 
 
         # -----------------------------

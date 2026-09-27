@@ -1,6 +1,7 @@
-from app.backend.search.index import (
-    INDEX_NAME
-)
+from opensearchpy.helpers import bulk
+
+from app.backend.config import settings
+from app.backend.search.index import INDEX_NAME
 
 
 class OpenSearchRepository:
@@ -39,18 +40,41 @@ class OpenSearchRepository:
         document_id: str
     ) -> None:
 
-        self.client.delete_by_query(
+        response = self.client.search(
             index=INDEX_NAME,
             body={
+                "_source": False,
+                "size": 1000,
                 "query": {
                     "term": {
                         "document_id":
                             document_id
                     }
                 }
-            },
-            conflicts="proceed",
-            refresh=True
+            }
+        )
+
+        hits = response[
+            "hits"
+        ][
+            "hits"
+        ]
+
+        if not hits:
+            return
+
+        actions = [
+            {
+                "_op_type": "delete",
+                "_index": INDEX_NAME,
+                "_id": hit["_id"]
+            }
+            for hit in hits
+        ]
+
+        bulk(
+            self.client,
+            actions
         )
 
 
@@ -73,6 +97,7 @@ class OpenSearchRepository:
             .embed_documents(texts)
         )
 
+        actions = []
         chunk_ids = []
 
         for index, (
@@ -87,29 +112,54 @@ class OpenSearchRepository:
             )
 
             document = {
-                "chunk_id": chunk_id,
-                "document_id": document_id,
+                "chunk_id":
+                    chunk_id,
+
+                "document_id":
+                    document_id,
+
                 "content":
                     chunk.page_content,
-                "embedding": vector,
+
+                "embedding":
+                    vector,
+
                 "metadata":
                     chunk.metadata
             }
 
-            self.client.index(
-                index=INDEX_NAME,
-                id=chunk_id,
-                body=document
+            actions.append(
+                {
+                    "_op_type": "index",
+                    "_index": INDEX_NAME,
+                    "_id": chunk_id,
+                    "_source": document
+                }
             )
 
             chunk_ids.append(
                 chunk_id
             )
 
+        bulk(
+            self.client,
+            actions
+        )
+
         return chunk_ids
 
 
-    def refresh(self) -> None:
+    def refresh(
+        self
+    ) -> None:
+
+        # OpenSearch Serverless does not expose
+        # the regular _refresh API.
+        if (
+            settings.opensearch_provider
+            == "serverless"
+        ):
+            return
 
         self.client.indices.refresh(
             index=INDEX_NAME

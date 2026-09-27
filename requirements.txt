@@ -10,3 +10,8 @@ opensearch-py
 pypdf
 python-dotenv
 requests
+
+#aws
+boto3
+botocore[crt]
+mangum

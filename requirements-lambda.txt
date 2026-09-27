@@ -1,0 +1,7 @@
+fastapi
+mangum
+
+opensearch-py
+python-dotenv
+
+boto3

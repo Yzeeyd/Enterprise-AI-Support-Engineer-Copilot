@@ -1,9 +1,27 @@
+# IDE / Python
 /.vscode
 .venv
-.env
 __pycache__
 *.pyc
-database
 
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Runtime data
+database
 data/index_state.json
 runtime/
+
+# Frontend generated files
+app/frontend/node_modules/
+app/frontend/dist/
+app/frontend/.env.production
+app/frontend/.env.local
+
+# Local AWS deployment files
+aws/
+
+# Local command/test output
+response.json
