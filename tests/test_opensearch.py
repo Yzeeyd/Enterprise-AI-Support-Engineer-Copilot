@@ -1,8 +1,11 @@
+import pytest
+
 from app.backend.search.client import get_opensearch_client
 from app.backend.search.index import create_index
 from app.backend.embeddings import get_embeddings_model
 
 
+@pytest.mark.integration
 def test_opensearch_index():
 
     client = get_opensearch_client()
